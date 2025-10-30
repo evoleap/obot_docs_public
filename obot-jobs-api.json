@@ -1,0 +1,870 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "OBOT Jobs API",
+    "description": "API for managing OLGA simulation jobs in OBOT. This API allows you to create jobs with casefiles and auxiliary files, monitor job status, and control job execution.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "OBOT API Support"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://your-obot-server.com/api",
+      "description": "Production server"
+    },
+    {
+      "url": "http://localhost:3000/api",
+      "description": "Development server"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "paths": {
+    "/jobs": {
+      "get": {
+        "summary": "List all jobs",
+        "description": "Returns all jobs created by the current API token. Jobs are filtered by the API token used for authentication.",
+        "tags": ["Jobs"],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Job"
+                  }
+                },
+                "example": [
+                  {
+                    "id": 123,
+                    "description": "Production Run - Case Set A",
+                    "project_id": 5,
+                    "project_name": "North Sea Pipeline",
+                    "status": "running",
+                    "priority_id": 1,
+                    "progress": 45,
+                    "submit_time": "2025-10-08T10:30:00Z",
+                    "start_time": "2025-10-08T10:31:00Z",
+                    "end_time": null,
+                    "run_time": 300,
+                    "numparallelsims": 4,
+                    "olga_version_id": 12,
+                    "olga_version": "7.3.5",
+                    "engine_id": 1,
+                    "pause_flag": false,
+                    "kill_flag": false,
+                    "created_at": "2025-10-08T10:30:00Z",
+                    "updated_at": "2025-10-08T10:35:00Z",
+                    "kases_count": 10,
+                    "kases": []
+                  }
+                ]
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new job",
+        "description": "Creates a new job with associated casefiles and auxiliary files. The project will be created if it doesn't exist. OLGA version must exist in the system. Aux files are input files required by the casefile (e.g., PVT tables, trend files, etc.).",
+        "tags": ["Jobs"],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateJobRequest"
+              },
+              "example": {
+                "job": {
+                  "description": "Parametric Study - Temperature Sensitivity",
+                  "project_name": "North Sea Pipeline",
+                  "olga_version": "7.3.5",
+                  "priority_id": 1,
+                  "engine_id": 1,
+                  "numparallelsims": 4
+                },
+                "casefiles": [
+                  {
+                    "file_name": "base_case.olga",
+                    "path": "/shared/projects/north_sea/base_case.olga",
+                    "modification_time": "2025-10-07T15:30:00Z",
+                    "status": 1,
+                    "modules": ["Pipeline", "Multiphase", "Compositional"],
+                    "aux_files": [
+                      {
+                        "file_name": "pvt_table.tab",
+                        "path": "/shared/projects/north_sea/pvt_table.tab",
+                        "modification_time": "2025-10-07T15:00:00Z"
+                      },
+                      {
+                        "file_name": "boundary_conditions.tpl",
+                        "path": "/shared/projects/north_sea/boundary_conditions.tpl",
+                        "modification_time": "2025-10-07T14:30:00Z"
+                      }
+                    ]
+                  },
+                  {
+                    "file_name": "high_temp.olga",
+                    "path": "/shared/projects/north_sea/high_temp.olga",
+                    "modification_time": "2025-10-07T15:35:00Z",
+                    "status": 1,
+                    "modules": ["Pipeline", "Multiphase", "Compositional", "Wax"],
+                    "aux_files": [
+                      {
+                        "file_name": "pvt_table_hightemp.tab",
+                        "path": "/shared/projects/north_sea/pvt_table_hightemp.tab",
+                        "modification_time": "2025-10-07T15:10:00Z"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Job created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Invalid OLGA version"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{id}": {
+      "get": {
+        "summary": "Get job details",
+        "description": "Returns detailed information about a specific job including all kases, casefiles, aux files, and simulations.",
+        "tags": ["Jobs"],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Job ID",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update job control flags",
+        "description": "Updates pause_flag or kill_flag to control job execution. Only these two fields can be updated.",
+        "tags": ["Jobs"],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Job ID",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "pause_flag": {
+                    "type": "boolean",
+                    "description": "Set to true to pause the job"
+                  },
+                  "kill_flag": {
+                    "type": "boolean",
+                    "description": "Set to true to kill the job"
+                  }
+                }
+              },
+              "example": {
+                "pause_flag": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Job updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid update request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Only pause_flag and kill_flag can be updated"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/jobs/status": {
+      "get": {
+        "summary": "Get status of multiple jobs",
+        "description": "Returns status information for one or more jobs. Can query specific jobs by ID or get status for all jobs.",
+        "tags": ["Jobs"],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_ids",
+            "in": "query",
+            "required": false,
+            "description": "Array of job IDs to query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            "style": "form",
+            "explode": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jobs": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/JobStatus"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "jobs": [
+                    {
+                      "id": 123,
+                      "description": "Production Run - Case Set A",
+                      "status": "running",
+                      "progress": 45,
+                      "submit_time": "2025-10-08T10:30:00Z",
+                      "start_time": "2025-10-08T10:31:00Z",
+                      "end_time": null,
+                      "run_time": 300,
+                      "kases": [
+                        {
+                          "id": 456,
+                          "status": "running",
+                          "progress": 60,
+                          "sim_id": 789,
+                          "start_time": "2025-10-08T10:31:00Z",
+                          "end_time": null,
+                          "machine": "compute-node-01"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      }
+    },
+    "/jobs/{id}/status": {
+      "get": {
+        "summary": "Get status of a single job",
+        "description": "Returns status information for a specific job including all kases.",
+        "tags": ["Jobs"],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Job ID",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jobs": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/JobStatus"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API token generated from the OBOT web interface. Include as: Authorization: Bearer YOUR_TOKEN"
+      }
+    },
+    "schemas": {
+      "Job": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Job ID"
+          },
+          "description": {
+            "type": "string",
+            "description": "Job description"
+          },
+          "project_id": {
+            "type": "integer",
+            "description": "Project ID"
+          },
+          "project_name": {
+            "type": "string",
+            "description": "Project name"
+          },
+          "status": {
+            "type": "string",
+            "description": "Job status (queued, running, completed, failed, paused, killed)"
+          },
+          "priority_id": {
+            "type": "integer",
+            "description": "Priority ID"
+          },
+          "progress": {
+            "type": "integer",
+            "description": "Job progress percentage (0-100)"
+          },
+          "submit_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Job submission time"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Job start time"
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Job completion time"
+          },
+          "run_time": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Job run time in seconds"
+          },
+          "numparallelsims": {
+            "type": "integer",
+            "description": "Number of parallel simulations"
+          },
+          "olga_version_id": {
+            "type": "integer",
+            "description": "OLGA version ID"
+          },
+          "olga_version": {
+            "type": "string",
+            "description": "OLGA version string (e.g., '7.3.5')"
+          },
+          "engine_id": {
+            "type": "integer",
+            "description": "Simulation engine ID"
+          },
+          "pause_flag": {
+            "type": "boolean",
+            "description": "Whether the job is paused"
+          },
+          "kill_flag": {
+            "type": "boolean",
+            "description": "Whether the job is killed"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Job creation timestamp"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Job last update timestamp"
+          },
+          "kases_count": {
+            "type": "integer",
+            "description": "Number of kases in the job"
+          },
+          "kases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Kase"
+            }
+          }
+        }
+      },
+      "Kase": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Kase ID"
+          },
+          "casefile_id": {
+            "type": "integer",
+            "description": "Associated casefile ID"
+          },
+          "status": {
+            "type": "string",
+            "description": "Kase status"
+          },
+          "casefile": {
+            "$ref": "#/components/schemas/Casefile"
+          },
+          "simulations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Simulation"
+            }
+          }
+        }
+      },
+      "Casefile": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Casefile ID"
+          },
+          "file_name": {
+            "type": "string",
+            "description": "Casefile name"
+          },
+          "path": {
+            "type": "string",
+            "description": "Full path to casefile"
+          },
+          "status": {
+            "type": "integer",
+            "description": "Casefile validation status (0=not validated, 1=validated)"
+          },
+          "aux_files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuxFile"
+            },
+            "description": "Auxiliary files associated with this casefile"
+          }
+        }
+      },
+      "AuxFile": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Aux file ID"
+          },
+          "file_name": {
+            "type": "string",
+            "description": "Aux file name"
+          },
+          "path": {
+            "type": "string",
+            "description": "Full path to aux file"
+          },
+          "modification_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "File modification time"
+          },
+          "is_output": {
+            "type": "boolean",
+            "description": "Whether this is an output file (false for input files)"
+          },
+          "is_downloaded": {
+            "type": "boolean",
+            "description": "Whether this file has been downloaded"
+          }
+        }
+      },
+      "Simulation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Simulation ID"
+          },
+          "status_id": {
+            "type": "integer",
+            "description": "Simulation status ID"
+          },
+          "progress": {
+            "type": "integer",
+            "description": "Simulation progress percentage"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Simulation start time"
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Simulation end time"
+          },
+          "sim_time": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Simulation time in seconds"
+          },
+          "machine_id": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Machine ID where simulation is running"
+          }
+        }
+      },
+      "JobStatus": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "progress": {
+            "type": "integer"
+          },
+          "submit_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "run_time": {
+            "type": "integer",
+            "nullable": true
+          },
+          "kases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KaseStatus"
+            }
+          }
+        }
+      },
+      "KaseStatus": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "progress": {
+            "type": "integer"
+          },
+          "sim_id": {
+            "type": "integer"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "machine": {
+            "type": "string",
+            "description": "Machine name where kase is running"
+          }
+        }
+      },
+      "CreateJobRequest": {
+        "type": "object",
+        "required": ["job", "casefiles"],
+        "properties": {
+          "job": {
+            "type": "object",
+            "required": ["description", "project_name", "olga_version"],
+            "properties": {
+              "description": {
+                "type": "string",
+                "description": "Job description"
+              },
+              "project_name": {
+                "type": "string",
+                "description": "Project name (will be created if doesn't exist)"
+              },
+              "olga_version": {
+                "type": "string",
+                "description": "OLGA version string (e.g., '7.3.5')"
+              },
+              "priority_id": {
+                "type": "integer",
+                "description": "Priority ID (optional)"
+              },
+              "engine_id": {
+                "type": "integer",
+                "description": "Engine ID (optional, default: 1)"
+              },
+              "numparallelsims": {
+                "type": "integer",
+                "description": "Number of parallel simulations (optional, default: 1)"
+              },
+              "launch_time": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Scheduled launch time (optional)"
+              }
+            }
+          },
+          "casefiles": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["file_name", "path"],
+              "properties": {
+                "file_name": {
+                  "type": "string",
+                  "description": "Casefile name"
+                },
+                "path": {
+                  "type": "string",
+                  "description": "Full path to casefile on shared storage"
+                },
+                "modification_time": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "File modification time (optional)"
+                },
+                "status": {
+                  "type": "integer",
+                  "description": "Validation status (0=not validated, 1=validated, default: 0)"
+                },
+                "modules": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "OLGA modules required (e.g., ['Pipeline', 'Multiphase'])"
+                },
+                "aux_files": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["file_name", "path"],
+                    "properties": {
+                      "file_name": {
+                        "type": "string",
+                        "description": "Aux file name"
+                      },
+                      "path": {
+                        "type": "string",
+                        "description": "Full path to aux file on shared storage"
+                      },
+                      "modification_time": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "File modification time (optional)"
+                      }
+                    }
+                  },
+                  "description": "Auxiliary input files required by this casefile (e.g., PVT tables, trend files). These files are automatically set with is_output=false and is_downloaded=false."
+                }
+              }
+            }
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of error messages"
+          }
+        }
+      }
+    },
+    "responses": {
+      "UnauthorizedError": {
+        "description": "Authentication token is missing or invalid",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Unauthorized"
+            }
+          }
+        }
+      },
+      "NotFoundError": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Job not found"
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Jobs",
+      "description": "Operations for managing OLGA simulation jobs"
+    }
+  ]
+}
