@@ -68,8 +68,7 @@ Customer deployment flow (conceptual):
 - Deploy the obot containers from evoleap.azurecr.io into the CAE and configure environment variables/secrets (database, storage, SSO, API, etc.).
 - Optionally enable Application Insights/Log Analytics and assign managed identities if required by your environment.
 
-Note: The attached Bicep template in this repository demonstrates these resources and relationships at production scale. It is a useful reference for the required building blocks without prescribing every environment-specific setting.
-
+For detailed installation instructions, see the [obot Installation Guide](obot-installation-guide.md).
 
 ## Configuration quick reference
 

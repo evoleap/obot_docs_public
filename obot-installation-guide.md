@@ -532,6 +532,22 @@ On the machines where the launcher is installed, please open the Windows Service
 
 ---
 
+## Additional Configuration
+
+### Azure Entra ID Single Sign-On Integration
+
+For organizations that want to integrate obot with their Azure Entra ID (formerly Azure AD) for single sign-on authentication and role-based access control, additional configuration is required after the initial deployment.
+
+This includes:
+- Creating and configuring an Enterprise Application in your Azure tenant
+- Defining custom App Roles for user access control
+- Assigning users to the appropriate roles
+- Configuring environment variables in your Azure Container App deployment
+
+For detailed step-by-step instructions on setting up Azure Entra ID SSO integration, see the [Azure Entra ID SSO Setup Guide](AZURE_ENTRA_ID_SSO_SETUP.md).
+
+---
+
 ## Summary
 
 obot is a distributed system designed to orchestrate OLGA simulations across cloud and on-premises infrastructure. This document has outlined the components, deployment patterns, and configuration steps required for a successful obot deployment in Microsoft Azure.
