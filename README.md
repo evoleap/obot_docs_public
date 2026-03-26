@@ -128,6 +128,18 @@ By area:
 	- New tables/columns for SSO (application settings, external login flags), API tokens/scopes/usage, server GUID for license keys, and upload-files flags.
 
 
+## Release notes
+
+### v3.0.5 / v3.3.3 (2026-03-26)
+
+- **Fix: Timezone handling for scheduled jobs** — Job launch times are now correctly converted to UTC using the browser's timezone offset, fixing incorrect scheduling for users in non-UTC timezones (e.g., Norway, Brazil).
+- **Fix: UI hang when removing all cases from job submission** — Resolved a division-by-zero error that caused the progress bar to freeze when all case files were removed before submitting.
+- **Feature: Powerusers can change job priority after submission** — A priority dropdown is now available on the job detail page for powerusers, allowing priority changes on queued or running jobs without resubmission.
+- **Feature: Admin machine priority** — Admins can now rank simulation machines by priority (1 = fastest) on the admin page. The scheduler uses this ranking to prefer higher-priority machines when multiple are available.
+- **Feature: Per-job thread count** — Users can now specify the number of OLGA parallel execution threads per job (1–32, default 4). The OLGA wrapper passes this as the `-nthreads` CLI parameter.
+- **UI: Dropdown styling improvements** — Selectmenu dropdowns now have consistent font sizing, simple hover highlighting, scrollable option lists, and no layout shift on hover.
+
+
 ## Breaking and operational notes
 
 - Rails 8 + Ruby 3 runtime is required going forward.
